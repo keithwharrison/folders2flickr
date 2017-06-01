@@ -79,6 +79,9 @@ mpg
 mpeg
 '''.split())
 
+# Max file size
+MAX_FILE_SIZE = int(configdict.get('max_file_size', '1073741824'))
+
 ##
 ##  You shouldn't need to modify anything below here
 ##
@@ -633,7 +636,12 @@ def grabNewImages(dirname):
                 continue
             ext = f.lower().split(".")[-1]
             if ext in ALLOWED_EXT and not ignoreMatch(f, ignoreglobs):
-                images.append(os.path.normpath(os.path.join(dirpath, f)))
+                filepath = os.path.normpath(os.path.join(dirpath, f))
+                filesize = os.path.getsize(filepath)
+                if filesize > MAX_FILE_SIZE:
+                    logging.info('Skipping %s - %d bytes is over max_file_size' % (filepath, filesize))
+                    continue
+                images.append(filepath)
     images.sort()
     return images
 

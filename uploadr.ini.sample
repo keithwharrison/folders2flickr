@@ -52,3 +52,7 @@ override_dates = 0
 #
 # secret = 13c314caee8b1f31
 # api_key = 91dfde3ed605f6b8b9d9c38886547dcf
+
+#
+# Max file size.  Any file over max_file_size bytes will be logged and ignored. Defaults to 1GB
+max_file_size = 1073741824
