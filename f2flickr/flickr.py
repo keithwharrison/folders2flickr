@@ -962,7 +962,7 @@ class Gallery(object):
 #for details of each param
 
 #XXX: Could be Photo.search(cls)
-def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
+def photos_search_with_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_upload_date='', max_upload_date='',\
                   min_taken_date='', max_taken_date='', \
                   license='', per_page='', page='', sort='',\
@@ -989,26 +989,33 @@ def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
                 photos.append(_parse_photo(photo))
         else:
             photos = [_parse_photo(data.rsp.photos.photo)]
+    return photos, int(data.rsp.photos.pages)
+
+def photos_search(user_id='', auth=False,  tags='', tag_mode='', text='',\
+                  min_upload_date='', max_upload_date='',\
+                  min_taken_date='', max_taken_date='', \
+                  license='', per_page='', page='', sort='',\
+                  safe_search='', content_type='', **kwargs):
+    """Returns a list of Photo objects.
+
+    If auth=True then will auth the user.  Can see private etc
+    """
+
+    photos, pages = photos_search_with_pages(**locals())
+
     return photos
 
 def photos_search_pages(user_id='', auth=False,  tags='', tag_mode='', text='',\
                   min_upload_date='', max_upload_date='',\
                   min_taken_date='', max_taken_date='', \
-                  license='', per_page='', page='', sort=''):
+                  license='', per_page='', page='', sort='',\
+                  safe_search='', content_type='', **kwargs):
     """Returns the number of pages for the previous function (photos_search())
     """
 
-    method = 'flickr.photos.search'
+    photos, pages = photos_search_with_pages(**locals())
 
-    data = _doget(method, auth=auth, user_id=user_id, tags=tags, text=text,\
-                  min_upload_date=min_upload_date,\
-                  max_upload_date=max_upload_date, \
-                  min_taken_date=min_taken_date, \
-                  max_taken_date=max_taken_date, \
-                  license=license, per_page=per_page,\
-                  page=page, sort=sort)
-
-    return data.rsp.photos.pages
+    return pages
 
 def photos_get_recent(extras='', per_page='', page=''):
     """http://www.flickr.com/services/api/flickr.photos.getRecent.html

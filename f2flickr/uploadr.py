@@ -36,11 +36,12 @@ from datetime import timedelta, datetime, time, date, tzinfo
 from itertools import groupby
 from os.path import dirname
 import calendar
+import argparse
 
 import f2flickr.flickr as flickr
 import f2flickr.tags2set as tags2set
 from f2flickr.configuration import configdict
-from flickr2history import convert_format
+from flickr2history import *
 from xml.dom import minidom
 
 #
@@ -645,10 +646,27 @@ def grabNewImages(dirname):
     images.sort()
     return images
 
+def list_history(absolutepath):
+    """
+    Print the history database
+    """
+    history = shelve.open(HISTORY_FILE)
+    keys = list(history.keys())
+    keys.sort()
+    
+    for key in keys:
+        if key.startswith('/'):
+            if absolutepath:
+                print("{}{}".format(IMAGE_DIR, key))
+            else:
+                print("{}".format(key))
+
 def main():
     """
     Initial entry point for the uploads
     """
+    global HISTORY_FILE
+
     logging.basicConfig(level=logging.DEBUG,
                 format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)20s() %(message)s',
                 filename='debug.log',
@@ -663,6 +681,28 @@ def main():
     console.setFormatter(logging.Formatter('%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() %(message)s'))
     logging.getLogger('').addHandler(console)
 
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-u', '--upload', action='store_true', help='Upload photos to flickr (default option)')
+    parser.add_argument('-l', '--list', action='store_true', help='List all the file entries in the history database')
+    parser.add_argument('-a', '--absolutepath', action='store_true', help='Show absolute file path when listing files')
+    parser.add_argument('-r', '--reshelf', action='store_true', help='Rebuild the history database')
+    parser.add_argument('-c', '--compare', action='store_true', help='Compare database entries with filesystem and flickr')
+    parser.add_argument('-f', '--historyfile', action='store', help='Use the specified history file for operations')
+    parser.add_argument('-d', '--delete', action='store', help='Delete the specified photo (by path) from the database and flickr')
+    args = parser.parse_args()
+
+    if args.historyfile:
+        HISTORY_FILE = args.historyfile
+
+    if args.list:
+        list_history(args.absolutepath)
+        sys.exit()
+
+    if args.delete:
+        delete_photo(args.delete, IMAGE_DIR, HISTORY_FILE)
+        sys.exit()
+
     uploadinstance = Uploadr()
     if not uploadinstance.checkToken():
         uploadinstance.authenticate()
@@ -670,6 +710,14 @@ def main():
     logging.info('Finding new photos from folder %s' % IMAGE_DIR)
     images = grabNewImages(IMAGE_DIR)
     logging.info('Found %d images' % len(images))
+
+    if args.compare:
+        database_compare(images, IMAGE_DIR, HISTORY_FILE, args.absolutepath)
+        sys.exit()
+
+    if args.reshelf:
+        reshelf(images, IMAGE_DIR, HISTORY_FILE)
+        sys.exit()     
 
     # Convert history file to new format, if necessary.
     logging.info('Converting existing history file to new format, if needed')
